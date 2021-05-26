@@ -1,0 +1,200 @@
+version: "3.5"
+services:
+  web:
+    image: php:7.2-apache
+    container_name: web
+    hostname: web
+    volumes:
+      - ./php:/var/www/html
+    ports:
+      - "2000:80"
+    networks:
+        default:
+          ipv4_address: 172.18.1.4
+    links:
+      - keyrock
+      - my-rest-api
+      - rest-proxy
+  keyrock:
+    image: fiware/idm:7.6.0
+    container_name: fiware-keyrock
+    hostname: keyrock
+    networks:
+        default:
+            ipv4_address: 172.18.1.5
+    depends_on:
+        - mysql-db
+    ports:
+        - '3005:3000'
+        - '443:443'
+    environment:
+        - DEBUG=idm:*
+        - IDM_DB_HOST=mysql-db
+        - IDM_HOST=http://localhost:3000
+        - IDM_PORT=3000
+        # Development use only
+        # Use Docker Secrets for Sensitive Data
+        - IDM_DB_PASS=secret
+        - IDM_DB_USER=root
+        - IDM_ADMIN_USER=admin
+        - IDM_ADMIN_EMAIL=admin@test.com
+        - IDM_ADMIN_PASS=1234
+        # If sending eMails point to any STMP server
+        - IDM_EMAIL_HOST=mailer
+        - IDM_EMAIL_PORT=25
+  mysql-db:
+      restart: always
+      image: mysql:5.7
+      hostname: mysql-db
+      container_name: db-mysql
+      expose:
+          - '3306'
+      ports:
+          - '3306:3306'
+      networks:
+          default:
+              ipv4_address: 172.18.1.6
+      environment:
+          # Development use only
+          # Use Docker Secrets for Sensitive Data
+          - 'MYSQL_ROOT_PASSWORD=secret'
+          - 'MYSQL_ROOT_HOST=172.18.1.5'
+      volumes:
+          - ./keyrock_mysql_database:/var/lib/mysql
+  mailer:
+      restart: always
+      image: mazdermind/docker-mail-relay
+      hostname: mailer
+      container_name: mailer
+      ports:
+          - '25:25'
+      environment:
+          - SMTP_LOGIN=<login> # Login to connect to the external relay
+          - SMTP_PASSWORD=<password> # Password to connect to the external relay
+          - EXT_RELAY_HOST=<hostname> # External relay DNS name
+          - EXT_RELAY_PORT=25
+          - ACCEPTED_NETWORKS=172.18.1.0/24
+          - USE_TLS=no
+  my-rest-api:
+    image: "my-rest-api"
+    container_name: my-rest-api
+    hostname: my-rest-api
+    build: .
+    volumes:
+      - ./rest-api:/usr/src/app
+    links:
+      - mongodb
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+    expose:
+      - "8080"
+    networks:
+        default:
+            ipv4_address: 172.18.1.8
+  rest-proxy:
+    image: fiware/pep-proxy
+    container_name: fiware-rest-proxy
+    hostname: rest-proxy
+    networks:
+      default:
+        ipv4_address: 172.18.1.11
+    depends_on:
+      - my-rest-api
+      - keyrock
+    ports:
+      - "1027:1027"
+    expose:
+      - "1027"
+    environment:
+      - PEP_PROXY_APP_HOST=my-rest-api
+      - PEP_PROXY_APP_PORT=8080
+      - PEP_PROXY_PORT=1027
+      - PEP_PROXY_IDM_HOST=keyrock
+      - PEP_PROXY_HTTPS_ENABLED=false
+      - PEP_PROXY_AUTH_ENABLED=false
+      - PEP_PROXY_IDM_SSL_ENABLED=false
+      - PEP_PROXY_IDM_PORT=3000
+      - PEP_PROXY_APP_ID=5be8948f-349d-4e9b-a407-910500a9839c
+      - PEP_PROXY_USERNAME=pep_proxy_30251b85-2d20-4b92-8c2c-09c8ffe7812f
+      - PEP_PASSWORD=pep_proxy_0a325e76-3f78-41b1-91e0-074f5c556061
+      - PEP_PROXY_PDP=idm
+      - PEP_PROXY_MAGIC_KEY=1234
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    hostname: mongodb
+    volumes:
+      - ./storage-db:/data/db
+    ports:
+      - "27018:27017"
+    expose:
+      - "27018"
+    networks:
+        default:
+            ipv4_address: 172.18.1.9
+  orion:
+    image: fiware/orion
+    container_name: orion
+    hostname: orion
+    ports:
+      - "1026:1026"
+    expose:
+      - "1026"
+    depends_on:
+      - notif-mongo
+    links:
+      - notif-mongo
+      - web
+    networks:
+        default:
+          ipv4_address: 172.18.1.14
+    command: -dbhost notif-mongo
+  notif-mongo:
+    image: mongo
+    container_name: notif-mongo
+    hostname: notif-mongo
+    volumes:
+      - ./notification-db:/data/db
+    ports:
+      - "27017:27017"
+    expose:
+      - "27017"
+    networks:
+        default:
+            ipv4_address: 172.18.1.15
+    command: --nojournal
+  orion-proxy:
+    image: fiware/pep-proxy
+    container_name: fiware-orion-proxy
+    hostname: orion-proxy
+    networks:
+      default:
+        ipv4_address: 172.18.1.16
+    depends_on:
+      - orion
+      - keyrock
+    ports:
+      - "1024:1024"
+    expose:
+      - "1024"
+    environment:
+      - PEP_PROXY_APP_HOST=orion
+      - PEP_PROXY_APP_PORT=1026
+      - PEP_PROXY_PORT=1024
+      - PEP_PROXY_IDM_HOST=keyrock
+      - PEP_PROXY_HTTPS_ENABLED=false
+      - PEP_PROXY_AUTH_ENABLED=false
+      - PEP_PROXY_IDM_SSL_ENABLED=false
+      - PEP_PROXY_IDM_PORT=3000
+      - PEP_PROXY_APP_ID=5be8948f-349d-4e9b-a407-910500a9839c
+      - PEP_PROXY_USERNAME=pep_proxy_30251b85-2d20-4b92-8c2c-09c8ffe7812f
+      - PEP_PASSWORD=pep_proxy_0a325e76-3f78-41b1-91e0-074f5c556061
+      - PEP_PROXY_PDP=idm
+      - PEP_PROXY_MAGIC_KEY=1234
+networks:
+  default:
+        ipam:
+            config:
+                - subnet: 172.18.1.0/24
