@@ -1,0 +1,93 @@
+body{
+  margin: 0;
+  padding: 0;
+  font-family: 'Open Sans',sans-serif;
+
+}
+.header{
+  padding: 20px 50px;
+}
+.wrapper{
+  background-image: url("../images/netflix.jpg");
+  background-attachment:fixed;
+  background-position:center;
+  background-size: cover;
+}
+.wrapper::after{
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 106%;
+  z-index: 0;
+  background: rgba(0, 0, 0, 0.6);
+  background-attachment: fixed;
+  /*box-shadow: inset 90px 70px 250px #000,inset -90px -70px 250px #000;*/
+}
+.signup-box-outer{
+  z-index: 2;
+  width: 450px;
+  padding: 60px;
+  position: -webkit-sticky; /* Safari */
+  position: relative;
+  margin-left: 50%;
+  margin-top: 100px;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.75);
+  box-sizing: border-box;
+}
+.signup-box-outer h1{
+  font-size: 32px;
+  color: #fff;
+  text-transform: capitalize;
+  margin-top: 0;
+}
+.signup-box-outer input {
+  height: 50px;
+  width: 100%;
+  border-radius: 3px;
+  background: #333;
+  color: #fff;
+  border: 1px solid #333;
+  padding-left: 15px;
+  box-sizing: border-box;
+}
+.input-wrap{
+  margin-bottom: 25px;
+}
+.signup-box-outer input::placeholder,
+.signup-box-outer input::-webkit-placeholder{
+  color: #fff;
+  opacity: 1;
+}
+.input-wrap button{
+  height: 50px;
+  border-radius: 3px;
+  color: #fff;
+  font-weight: 500;
+  font-size:16px;
+}
+.add{
+  width: 100%;
+  background: #e50914;
+  border: 1px solid #e50914;
+}
+.edit{
+  width: 100%;
+  background: #e50914;
+  border: 1px solid #e50914;
+}
+.cancel{
+  width: 50%;
+  margin-left: 80px;
+  background: #e50914;
+  border: 1px solid #e50914;
+}
+.input-wrap label{
+  color: #fff;
+}
+.role-option{
+  background-color: #333;
+  color: #fff;
+}
